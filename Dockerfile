@@ -4,12 +4,10 @@ FROM runpod/worker-comfyui:5.8.5-base
 # install system build deps needed by llama-cpp-python and many extensions
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential git cmake pkg-config \
-    python3-dev python3-venv python3-pip \
     libopenblas-dev liblapack-dev libffi-dev libssl-dev libomp-dev \
  && rm -rf /var/lib/apt/lists/*
 
-# upgrade pip and build tools
-RUN python3 -m pip install --upgrade pip setuptools wheel cmake
+RUN uv pip install llama-cpp-python
 
 # install custom nodes using comfy-cli
 RUN comfy-node-install \
@@ -26,9 +24,13 @@ RUN comfy-node-install \
  ComfyUI-FBCNN \ 
  comfyui_controlnet_aux \ 
  ComfyUI_IPAdapter_plus \ 
- z-tipo-extension \ 
  ComfyUI-ppm \ 
  ComfyUI-QwenVL
+
+# Install a custom node and pin setuptools version to make ‘pkg_resources’ available
+RUN uv pip install --upgrade "setuptools<70"
+RUN comfy-node-install z-tipo-extension
+RUN uv pip install --upgrade setuptools
 
 # Go back to the root
 WORKDIR /
