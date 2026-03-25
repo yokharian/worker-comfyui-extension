@@ -777,7 +777,40 @@ def handler(job):
                     if image_bytes:
                         file_extension = os.path.splitext(filename)[1] or ".png"
 
-                        if os.environ.get("BUCKET_ENDPOINT_URL"):
+                        export_output_path = os.environ.get("EXPORT_OUTPUT_PATH")
+                        if export_output_path:
+                            try:
+                                if "/runpod-volume" in export_output_path:
+                                    print(
+                                        f"worker-comfyui - EXPORT_OUTPUT_PATH points to network volume: {export_output_path}"
+                                    )
+
+                                # Ensure export directory exists
+                                os.makedirs(export_output_path, exist_ok=True)
+
+                                # Write image to local export path
+                                output_filename = os.path.join(
+                                    export_output_path, filename
+                                )
+                                with open(output_filename, "wb") as f:
+                                    f.write(image_bytes)
+
+                                print(
+                                    f"worker-comfyui - Exported {filename} to local path: {output_filename}"
+                                )
+                                output_data.append(
+                                    {
+                                        "filename": filename,
+                                        "type": "local_path",
+                                        "data": output_filename,
+                                    }
+                                )
+                            except Exception as e:
+                                error_msg = f"Error exporting {filename} to local path: {e}"
+                                print(f"worker-comfyui - {error_msg}")
+                                errors.append(error_msg)
+
+                        elif os.environ.get("BUCKET_ENDPOINT_URL"):
                             try:
                                 with tempfile.NamedTemporaryFile(
                                     suffix=file_extension, delete=False
